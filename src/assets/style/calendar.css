@@ -1,0 +1,203 @@
+/* Кастомные стили для react-big-calendar */
+
+/* Основной контейнер календаря */
+.rbc-calendar {
+    font-family: 'Source Sans Pro', sans-serif;
+    color: #43425D;
+    min-height: 500px;
+}
+
+.rbc-event.rbc-selected {
+    background-color: #2563EB !important;
+}
+
+/* Слоты времени */
+
+.rbc-off-range-bg {
+    background: white;
+}
+
+.rbc-date-cell .rbc-off-range {
+    color: rgba(67, 66, 93, 0.3);
+}
+
+/* Текущее время (в недельном/дневном виде) */
+.rbc-current-time-indicator {
+    background-color: #3B86FF;
+    height: 2px;
+    position: relative;
+}
+
+.rbc-current-time-indicator::before {
+    content: '';
+    position: absolute;
+    left: -5px;
+    top: -4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #3B86FF;
+}
+
+
+/* Drag and Drop стили */
+.rbc-addons-dnd-drag-preview {
+    opacity: 0.7;
+}
+
+.calendar-holiday {
+    background-color: #FFF5F5;
+}
+
+.calendar-slot-hover {
+    background-color: #F0F7FF;
+    cursor: pointer;
+}
+
+.rbc-day-bg {
+    border-left: 1px solid #E8E8E8;
+    border-bottom: 1px solid #E8E8E8;
+}
+
+.rbc-day-bg:first-child {
+    border-left: none;
+}
+
+
+/* Заголовки дней недели */
+.rbc-header {
+    padding: 16px 8px;
+    font-weight: 600;
+    font-size: 11px;
+    color: #A3A6B4;
+    text-transform: uppercase;
+    border-bottom: 1px solid #E8E8E8;
+    border-left: 1px solid #E8E8E8;
+    background-color: #F5F6FA;
+}
+
+
+/* Номера дней */
+.rbc-date-cell {
+    padding: 8px 8px 0;
+    font-size: 14px;
+    font-weight: 400;
+    text-align: right;
+}
+
+/* Дни из других месяцев - более светлые */
+.rbc-off-range.rbc-date-cell {
+    color: rgba(67, 66, 93, 0.3);
+}
+
+
+/* События - синие плитки */
+.rbc-event {
+    background-color: #3B86FF;
+    font-size: 13px;
+    font-weight: 500;
+    color: #FFFFFF;
+    padding: 2px 6px;
+}
+
+.rbc-event:hover {
+    background-color: #2B76EF;
+    box-shadow: 0 2px 4px rgba(59, 134, 255, 0.3);
+}
+
+.rbc-event:focus {
+    outline: 2px solid #3B86FF;
+    outline-offset: 2px;
+}
+
+/* Event labels for better readability */
+.rbc-event-label {
+    font-size: 11px;
+    font-weight: 400;
+}
+
+/* Сегодняшняя дата - выделение ячейки */
+.rbc-today {
+    background-color: #F5F6FA;
+}
+
+.rbc-today .rbc-date-cell {
+    color: #3B86FF;
+    font-weight: 600;
+}
+
+/* Ячейки с событиями */
+.rbc-date-cell.rbc-now {
+    font-weight: 600;
+}
+
+
+/* Hover эффект для ячеек */
+.rbc-day-bg:hover {
+    background-color: #F8FBFF;
+    cursor: pointer;
+}
+
+/* Кнопка "еще N" для свернутых событий */
+.rbc-show-more {
+    color: #3B86FF;
+    font-weight: 500;
+    font-size: 12px;
+    padding: 2px 8px;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+}
+
+.rbc-show-more:hover {
+    text-decoration: none;
+    color: #2563EB;
+}
+
+/* Высота строк месячного вида */
+.rbc-month-row {
+    min-height: 100px;
+}
+
+/* Week view specific styling */
+
+/* Events in week/day view */
+.rbc-event-content {
+    padding: 2px 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+/* Fix scrollbar styling */
+.rbc-time-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.rbc-time-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.rbc-time-content::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.rbc-time-content::-webkit-scrollbar-thumb:hover {
+    background: #a1a1a1;
+}
+
+.rbc-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.rbc-button-link {
+    text-transform: uppercase;
+}
+
+
+

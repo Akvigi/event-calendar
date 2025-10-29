@@ -1,17 +1,23 @@
 import { Calendar, momentLocalizer, type View } from 'react-big-calendar';
+import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+import '../assets/style/calendar.css';
 import moment from 'moment';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import CalendarToolbar from '../components/CalendarToolbar';
 import EventPopover from '../components/EventPopover';
 import { useEventForm } from '../hooks/useEventForm';
 
 const localizer = momentLocalizer(moment);
+const DragAndDropCalendar = withDragAndDrop<Event>(Calendar);
 
 interface Event {
   id: string;
   start: Date;
   end: Date;
   title: string;
+  color?: string;
 }
 
 const CalendarPage = () => {
@@ -19,7 +25,9 @@ const CalendarPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [currentEvent, setCurrentEvent] = useState<Partial<Event> | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [view, setView] = useState<View>('month');
+  const [view, setView] = useState<View>(
+    (localStorage.getItem('view') as View) || 'month'
+  );
   const [date, setDate] = useState(new Date());
   const [popoverPosition, setPopoverPosition] = useState<{
     x: number;
@@ -31,17 +39,18 @@ const CalendarPage = () => {
     eventDate,
     eventTime,
     eventNotes,
+    eventColor,
     setEventTitle,
     setEventDate,
     setEventTime,
     setEventNotes,
+    setEventColor,
     setFormFromDate,
     setFormFromEvent,
     getEventDataFromForm,
     isFormValid,
   } = useEventForm();
 
-  // Load events from localStorage
   useEffect(() => {
     const storedEvents = localStorage.getItem('events');
     if (storedEvents) {
@@ -63,49 +72,43 @@ const CalendarPage = () => {
     }
   }, [events]);
 
-  const handleSelectSlot = useCallback(
-    ({
-      start,
-      end,
-      box,
-    }: {
-      start: Date;
-      end: Date;
-      box?: { x: number; y: number; clientX: number; clientY: number };
-    }) => {
-      setCurrentEvent({ start, end });
-      setFormFromDate(start);
-      setIsEditing(false);
-      setShowModal(true);
+  const handleSelectSlot = ({
+    start,
+    end,
+    box,
+  }: {
+    start: Date;
+    end: Date;
+    box?: { x: number; y: number; clientX: number; clientY: number };
+  }) => {
+    setCurrentEvent({ start, end });
+    setFormFromDate(start);
+    setIsEditing(false);
+    setShowModal(true);
 
-      // Set popover position based on click location
-      if (box) {
-        setPopoverPosition({ x: box.clientX + 10, y: box.clientY + 10 });
-      } else {
-        // Fallback to center if no box info
-        setPopoverPosition({
-          x: window.innerWidth / 2 - 190,
-          y: window.innerHeight / 2 - 200,
-        });
-      }
-    },
-    [setFormFromDate]
-  );
-
-  const handleSelectEvent = useCallback(
-    (event: Event, e: React.SyntheticEvent) => {
-      const mouseEvent = e.nativeEvent as MouseEvent;
-      setCurrentEvent(event);
-      setFormFromEvent(event);
-      setIsEditing(true);
-      setShowModal(true);
+    // Set popover position based on click location
+    if (box) {
+      setPopoverPosition({ x: box.clientX + 10, y: box.clientY + 10 });
+    } else {
+      // Fallback to center if no box info
       setPopoverPosition({
-        x: mouseEvent.clientX + 10,
-        y: mouseEvent.clientY + 10,
+        x: window.innerWidth / 2 - 190,
+        y: window.innerHeight / 2 - 200,
       });
-    },
-    [setFormFromEvent]
-  );
+    }
+  };
+
+  const handleSelectEvent = (event: Event, e: React.SyntheticEvent) => {
+    const mouseEvent = e.nativeEvent as MouseEvent;
+    setCurrentEvent(event);
+    setFormFromEvent(event);
+    setIsEditing(true);
+    setShowModal(true);
+    setPopoverPosition({
+      x: mouseEvent.clientX + 10,
+      y: mouseEvent.clientY + 10,
+    });
+  };
 
   const handleSaveEvent = () => {
     if (!isFormValid()) return;
@@ -116,7 +119,13 @@ const CalendarPage = () => {
       setEvents((prev) =>
         prev.map((e) =>
           e.id === currentEvent.id
-            ? { ...e, title: eventTitle, start: startDate, end: endDate }
+            ? {
+                ...e,
+                title: eventTitle,
+                start: startDate,
+                end: endDate,
+                color: eventColor,
+              }
             : e
         )
       );
@@ -126,6 +135,7 @@ const CalendarPage = () => {
         title: eventTitle,
         start: startDate,
         end: endDate,
+        color: eventColor,
       };
       setEvents((prev) => [...prev, newEvent]);
     }
@@ -134,19 +144,17 @@ const CalendarPage = () => {
     setCurrentEvent(null);
   };
 
-  const handleDeleteEvent = () => {
-    if (currentEvent?.id) {
-      setEvents((prev) => prev.filter((e) => e.id !== currentEvent.id));
-    }
+  const handleCloseModal = () => {
     setShowModal(false);
     setCurrentEvent(null);
     setPopoverPosition(null);
   };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setCurrentEvent(null);
-    setPopoverPosition(null);
+  const handleDeleteEvent = () => {
+    if (currentEvent?.id) {
+      setEvents((prev) => prev.filter((e) => e.id !== currentEvent.id));
+    }
+    handleCloseModal();
   };
 
   const handleNavigate = (newDate: Date) => {
@@ -154,6 +162,7 @@ const CalendarPage = () => {
   };
 
   const handleViewChange = (newView: View) => {
+    localStorage.setItem('view', newView);
     setView(newView);
   };
 
@@ -162,32 +171,71 @@ const CalendarPage = () => {
   };
 
   const goToBack = () => {
-    if (view === 'month') {
-      setDate(moment(date).subtract(1, 'month').toDate());
-    } else if (view === 'week') {
-      setDate(moment(date).subtract(1, 'week').toDate());
-    } else if (view === 'day') {
-      setDate(moment(date).subtract(1, 'day').toDate());
+    if (view === 'work_week' || view === 'agenda') {
+      return;
     }
+    setDate(moment(date).subtract(1, view).toDate());
   };
 
   const goToNext = () => {
-    if (view === 'month') {
-      setDate(moment(date).add(1, 'month').toDate());
-    } else if (view === 'week') {
-      setDate(moment(date).add(1, 'week').toDate());
-    } else if (view === 'day') {
-      setDate(moment(date).add(1, 'day').toDate());
+    if (view === 'work_week' || view === 'agenda') {
+      return;
     }
+    setDate(moment(date).add(1, view).toDate());
+  };
+
+  const handleEventDrop = ({
+    event,
+    start,
+    end,
+  }: {
+    event: Event;
+    start: string | Date;
+    end: string | Date;
+  }) => {
+    const startDate = typeof start === 'string' ? new Date(start) : start;
+    const endDate = typeof end === 'string' ? new Date(end) : end;
+
+    setEvents((prev) =>
+      prev.map((e) =>
+        e.id === event.id ? { ...e, start: startDate, end: endDate } : e
+      )
+    );
+  };
+
+  // Пример: настройка стилей для слотов (ячеек времени)
+  const slotPropGetter = (date: Date) => {
+    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+    return {
+      className: isWeekend ? 'calendar-weekend' : '',
+    };
+  };
+
+  // Пример: настройка стилей для дней
+  const dayPropGetter = (date: Date) => {
+    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+    const isToday = moment(date).isSame(new Date(), 'day');
+
+    return {
+      className: isWeekend ? 'calendar-weekend' : '',
+      style: isToday ? { fontWeight: 'bold' } : {},
+    };
+  };
+
+  // Custom date header format for week view
+  const customDateHeader = ({ date }: { date: Date }) => {
+    const dayName = moment(date).format('ddd');
+    const monthDate = moment(date).format('MM/DD');
+    return `${dayName} ${monthDate}`;
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full">
+    <div className="flex-1 flex flex-col">
       <h1 className="text-[28px] text-[#43425D] mb-6 font-semibold">
-        Calendar View
+        Calendar
       </h1>
 
-      <div className="flex flex-1 flex-col p-8 shadow-[0px_2px_6px_rgba(0,0,0,0.04)] bg-white rounded-lg overflow-hidden">
+      <div className="flex flex-1 flex-col p-8 shadow-[0px_2px_6px_rgba(0,0,0,0.04)] bg-white rounded-lg">
         <CalendarToolbar
           date={date}
           view={view}
@@ -197,9 +245,10 @@ const CalendarPage = () => {
           onViewChange={handleViewChange}
         />
 
-        <div className="flex-1 min-h-0">
-          <Calendar
+        <div className={' flex-1'}>
+          <DragAndDropCalendar
             localizer={localizer}
+            className="custom-calendar"
             events={events}
             startAccessor="start"
             endAccessor="end"
@@ -210,12 +259,25 @@ const CalendarPage = () => {
             onView={handleViewChange}
             onSelectSlot={handleSelectSlot}
             onSelectEvent={handleSelectEvent}
+            onEventDrop={handleEventDrop}
             selectable
             toolbar={false}
             style={{ height: '100%', width: '100%' }}
-            eventPropGetter={() => ({
+            slotPropGetter={slotPropGetter}
+            dayPropGetter={dayPropGetter}
+            components={{
+              timeGutterHeader: () => <div style={{ padding: '8px' }}></div>,
+              week: {
+                header: customDateHeader,
+              },
+              day: {
+                header: customDateHeader,
+              },
+            }}
+            eventPropGetter={(event: Event) => ({
+              className: 'custom-event',
               style: {
-                backgroundColor: '#3B86FF',
+                backgroundColor: event.color || '#3B86FF',
                 borderRadius: '4px',
                 border: 'none',
                 color: 'white',
@@ -234,10 +296,12 @@ const CalendarPage = () => {
           eventDate={eventDate}
           eventTime={eventTime}
           eventNotes={eventNotes}
+          eventColor={eventColor}
           onTitleChange={setEventTitle}
           onDateChange={setEventDate}
           onTimeChange={setEventTime}
           onNotesChange={setEventNotes}
+          onColorChange={setEventColor}
           onSave={handleSaveEvent}
           onDelete={handleDeleteEvent}
           onClose={handleCloseModal}

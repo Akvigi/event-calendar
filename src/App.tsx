@@ -10,7 +10,7 @@ function App() {
       <SideBar />
       <div className="flex-1 flex flex-col">
         <AppHeader />
-        <div className="flex-1 py-8 px-[75px] max-w-full bg-[#F0F0F7] max-h-full overflow-auto">
+        <div className="flex-1 py-8 px-[75px]  bg-[#F0F0F7] max-w-full max-h-full overflow-auto">
           <Routes>
             <Route path="*" element={<CalendarPage />} />
           </Routes>

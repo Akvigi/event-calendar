@@ -7,10 +7,12 @@ interface EventPopoverProps {
   eventDate: string;
   eventTime: string;
   eventNotes: string;
+  eventColor: string;
   onTitleChange: (value: string) => void;
   onDateChange: (value: string) => void;
   onTimeChange: (value: string) => void;
   onNotesChange: (value: string) => void;
+  onColorChange: (value: string) => void;
   onSave: () => void;
   onDelete: () => void;
   onClose: () => void;
@@ -23,10 +25,12 @@ const EventPopover = ({
   eventDate,
   eventTime,
   eventNotes,
+  eventColor,
   onTitleChange,
   onDateChange,
   onTimeChange,
   onNotesChange,
+  onColorChange,
   onSave,
   onDelete,
   onClose,
@@ -49,6 +53,17 @@ const EventPopover = ({
   }, [onClose]);
 
   useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  useEffect(() => {
     if (popoverRef.current && position) {
       const rect = popoverRef.current.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
@@ -59,17 +74,17 @@ const EventPopover = ({
 
       // Adjust if popover goes off right edge
       if (left + rect.width > viewportWidth) {
-        left = viewportWidth - rect.width - 20;
+        left = viewportWidth - rect.width - 12;
       }
 
       // Adjust if popover goes off bottom edge
       if (top + rect.height > viewportHeight) {
-        top = viewportHeight - rect.height - 20;
+        top = viewportHeight - rect.height - 12;
       }
 
       // Ensure it doesn't go off top or left edges
-      top = Math.max(20, top);
-      left = Math.max(20, left);
+      top = Math.max(12, top);
+      left = Math.max(12, left);
 
       popoverRef.current.style.top = `${top}px`;
       popoverRef.current.style.left = `${left}px`;
@@ -85,11 +100,12 @@ const EventPopover = ({
       placeholder: 'Event name',
     },
     {
-      label: 'Interview or Join To PP',
+      label: 'Date',
       type: 'text' as const,
       value: eventDate,
       onChange: onDateChange,
       placeholder: '02/01/2019',
+      disabled: true,
     },
     {
       label: 'Event time',
@@ -105,7 +121,7 @@ const EventPopover = ({
   return (
     <div
       ref={popoverRef}
-      className="fixed bg-white rounded-lg shadow-xl w-[380px] p-5 z-50 border border-gray-200"
+      className="fixed bg-white rounded-lg shadow-xl w-[260px] p-3 z-50 border border-gray-200"
       style={{
         top: position.y,
         left: position.x,
@@ -113,52 +129,77 @@ const EventPopover = ({
     >
       <button
         onClick={onClose}
-        className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+        className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
       >
-        <X className="w-5 h-5" />
+        <X className="w-4 h-4" />
       </button>
 
-      <h3 className="text-lg font-medium text-gray-900 mb-4">
-        {isEditing ? 'Edit Event' : 'Add Event'}
-      </h3>
-
-      <div className="space-y-3">
+      <div className="space-y-2">
         {formFields.map((field) => (
           <div key={field.label}>
-            <label className="block text-sm text-gray-700 mb-1">
+            <label className="block text-xs text-gray-700 mb-1">
               {field.label}
             </label>
             <input
               type={field.type}
               value={field.value}
+              disabled={field.disabled}
               onChange={(e) => field.onChange(e.target.value)}
               placeholder={field.placeholder}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              maxLength={field.label === 'Event name' ? 30 : undefined}
+              className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
             />
           </div>
         ))}
 
         <div>
-          <label className="block text-sm text-gray-700 mb-1">Notes</label>
-          <textarea
+          <label className="block text-xs text-gray-700 mb-1">Notes</label>
+          <input
             value={eventNotes}
             onChange={(e) => onNotesChange(e.target.value)}
             placeholder="Culpa sit ex veniam qui quis..."
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+            className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
           />
         </div>
 
-        <div className="flex justify-between pt-2">
+        <div>
+          <label className="block text-xs text-gray-700 mb-1">Color</label>
+          <div className="flex gap-2 flex-wrap">
+            {[
+              '#3B86FF',
+              '#FF6B6B',
+              '#4ECDC4',
+              '#FFD93D',
+              '#95E1D3',
+              '#F38181',
+              '#AA96DA',
+              '#FCBAD3',
+            ].map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => onColorChange(color)}
+                className={`w-6 h-6 rounded border-2 transition-all ${
+                  eventColor === color
+                    ? 'border-gray-800 scale-105'
+                    : 'border-gray-300'
+                }`}
+                style={{ backgroundColor: color }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="flex justify-between pt-1">
           <button
             onClick={onDelete}
-            className="px-4 py-2 text-red-500 hover:text-red-600 text-sm font-medium"
+            className="px-3 py-1 text-red-500 hover:text-red-600 text-xs font-medium"
           >
             {isEditing ? 'DISCARD' : 'CANCEL'}
           </button>
           <button
             onClick={onSave}
-            className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm font-medium"
+            className="px-4 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs font-medium"
           >
             {isEditing ? 'EDIT' : 'ADD'}
           </button>

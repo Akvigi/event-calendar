@@ -6,6 +6,7 @@ interface Event {
   start: Date;
   end: Date;
   title: string;
+  color?: string;
 }
 
 export const useEventForm = () => {
@@ -13,12 +14,14 @@ export const useEventForm = () => {
   const [eventDate, setEventDate] = useState('');
   const [eventTime, setEventTime] = useState('');
   const [eventNotes, setEventNotes] = useState('');
+  const [eventColor, setEventColor] = useState('#3B86FF');
 
   const resetForm = () => {
     setEventTitle('');
     setEventDate('');
     setEventTime('');
     setEventNotes('');
+    setEventColor('#3B86FF');
   };
 
   const setFormFromEvent = (event: Event | Partial<Event>) => {
@@ -28,6 +31,7 @@ export const useEventForm = () => {
       setEventTime(moment(event.start).format('HH:mm'));
     }
     setEventNotes('');
+    setEventColor(event.color || '#3B86FF');
   };
 
   const setFormFromDate = (start: Date) => {
@@ -35,6 +39,7 @@ export const useEventForm = () => {
     setEventDate(moment(start).format('MM/DD/YYYY'));
     setEventTime(moment(start).format('HH:mm'));
     setEventNotes('');
+    setEventColor('#3B86FF');
   };
 
   const getEventDataFromForm = () => {
@@ -51,7 +56,9 @@ export const useEventForm = () => {
   };
 
   const isFormValid = () => {
-    return eventTitle.trim() !== '' && eventDate !== '';
+    return (
+      eventTitle.trim() !== '' && eventTitle.length <= 30 && eventDate !== ''
+    );
   };
 
   return {
@@ -59,10 +66,12 @@ export const useEventForm = () => {
     eventDate,
     eventTime,
     eventNotes,
+    eventColor,
     setEventTitle,
     setEventDate,
     setEventTime,
     setEventNotes,
+    setEventColor,
     resetForm,
     setFormFromEvent,
     setFormFromDate,
