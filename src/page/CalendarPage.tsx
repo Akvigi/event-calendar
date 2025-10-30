@@ -4,7 +4,7 @@ import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../assets/style/calendar.css';
 import moment from 'moment';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import CalendarToolbar from '../components/CalendarToolbar';
 import EventPopover from '../components/EventPopover';
 import { useEventForm } from '../hooks/useEventForm';
@@ -18,6 +18,7 @@ interface Event {
   end: Date;
   title: string;
   color?: string;
+  notes?: string;
 }
 
 const CalendarPage = () => {
@@ -33,6 +34,7 @@ const CalendarPage = () => {
     x: number;
     y: number;
   } | null>(null);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   const {
     eventTitle,
@@ -54,21 +56,33 @@ const CalendarPage = () => {
   useEffect(() => {
     const storedEvents = localStorage.getItem('events');
     if (storedEvents) {
-      const parsed = JSON.parse(storedEvents);
-      setEvents(
-        parsed.map((e: any) => ({
-          ...e,
-          start: new Date(e.start),
-          end: new Date(e.end),
-        }))
-      );
+      try {
+        const parsed = JSON.parse(storedEvents);
+        setEvents(
+          parsed.map((e: any) => ({
+            ...e,
+            start: new Date(e.start),
+            end: new Date(e.end),
+          }))
+        );
+      } catch (err) {
+        // Corrupted data - clear it
+        localStorage.removeItem('events');
+      }
     }
   }, []);
 
-  // Save events to localStorage
+  // Save events to localStorage (always sync; remove key when empty)
   useEffect(() => {
-    if (events.length > 0) {
-      localStorage.setItem('events', JSON.stringify(events));
+    try {
+      if (events.length === 0) {
+        localStorage.removeItem('events');
+      } else {
+        localStorage.setItem('events', JSON.stringify(events));
+      }
+    } catch (err) {
+      // ignore storage errors
+      console.warn('Failed to persist events', err);
     }
   }, [events]);
 
@@ -81,9 +95,18 @@ const CalendarPage = () => {
     end: Date;
     box?: { x: number; y: number; clientX: number; clientY: number };
   }) => {
-    if (start < new Date()) {
+    const now = new Date();
+    now.setHours(0);
+    now.setMinutes(0);
+    now.setSeconds(0);
+    now.setMilliseconds(0);
+    // Prevent selecting slots in the past (compare by minute precision)
+    if (moment(start).isBefore(moment(now), 'minute')) {
+      setLastError('Cannot create events in the past');
+      setTimeout(() => setLastError(null), 2500);
       return;
     }
+
     setCurrentEvent({ start, end });
     setFormFromDate(start);
     setIsEditing(false);
@@ -92,6 +115,9 @@ const CalendarPage = () => {
     // Set popover position based on click location
     if (box) {
       setPopoverPosition({ x: box.clientX + 10, y: box.clientY + 10 });
+    } else if ((window as any).event) {
+      const ev = (window as any).event as MouseEvent;
+      setPopoverPosition({ x: ev.clientX + 10, y: ev.clientY + 10 });
     } else {
       // Fallback to center if no box info
       setPopoverPosition({
@@ -113,10 +139,40 @@ const CalendarPage = () => {
     });
   };
 
-  const handleSaveEvent = () => {
+  const computeTextColor = (bg: string) => {
+    try {
+      // Remove # if present
+      const hex = bg.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      // Perceived luminance
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return luminance > 0.6 ? '#111827' : '#ffffff';
+    } catch (err) {
+      return '#ffffff';
+    }
+  };
+
+  const handleSaveEvent = useCallback(() => {
+    setLastError(null);
     if (!isFormValid()) return;
 
     const { startDate, endDate } = getEventDataFromForm();
+
+    // Validate times: end must be after start
+    if (moment(endDate).isBefore(moment(startDate))) {
+      setLastError('End time must be after start time');
+      setTimeout(() => setLastError(null), 3500);
+      return;
+    }
+
+    // Prevent creating events in the past
+    if (moment(startDate).isBefore(moment(), 'minute')) {
+      setLastError('Cannot create events in the past');
+      setTimeout(() => setLastError(null), 3500);
+      return;
+    }
 
     if (isEditing && currentEvent?.id) {
       setEvents((prev) =>
@@ -128,37 +184,53 @@ const CalendarPage = () => {
                 start: startDate,
                 end: endDate,
                 color: eventColor,
+                notes: eventNotes,
               }
             : e
         )
       );
     } else {
+      const id =
+        typeof crypto !== 'undefined' && (crypto as any).randomUUID
+          ? (crypto as any).randomUUID()
+          : Date.now().toString();
+
       const newEvent: Event = {
-        id: Date.now().toString(),
+        id,
         title: eventTitle,
         start: startDate,
         end: endDate,
         color: eventColor,
+        notes: eventNotes,
       };
       setEvents((prev) => [...prev, newEvent]);
     }
 
     setShowModal(false);
     setCurrentEvent(null);
-  };
+  }, [
+    isEditing,
+    currentEvent,
+    eventTitle,
+    eventColor,
+    eventNotes,
+    isFormValid,
+    getEventDataFromForm,
+  ]);
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setShowModal(false);
     setCurrentEvent(null);
     setPopoverPosition(null);
-  };
+    setLastError(null);
+  }, []);
 
-  const handleDeleteEvent = () => {
+  const handleDeleteEvent = useCallback(() => {
     if (currentEvent?.id) {
       setEvents((prev) => prev.filter((e) => e.id !== currentEvent.id));
     }
     handleCloseModal();
-  };
+  }, [currentEvent, handleCloseModal]);
 
   const handleNavigate = (newDate: Date) => {
     setDate(newDate);
@@ -195,24 +267,34 @@ const CalendarPage = () => {
     setDate(moment(date).add(1, v[view]).toDate());
   };
 
-  const handleEventDrop = ({
-    event,
-    start,
-    end,
-  }: {
-    event: Event;
-    start: string | Date;
-    end: string | Date;
-  }) => {
-    const startDate = typeof start === 'string' ? new Date(start) : start;
-    const endDate = typeof end === 'string' ? new Date(end) : end;
+  const handleEventDrop = useCallback(
+    ({
+      event,
+      start,
+      end,
+    }: {
+      event: Event;
+      start: string | Date;
+      end: string | Date;
+    }) => {
+      const startDate = typeof start === 'string' ? new Date(start) : start;
+      const endDate = typeof end === 'string' ? new Date(end) : end;
 
-    setEvents((prev) =>
-      prev.map((e) =>
-        e.id === event.id ? { ...e, start: startDate, end: endDate } : e
-      )
-    );
-  };
+      // Prevent dropping events into the past
+      if (moment(startDate).isBefore(moment(), 'minute')) {
+        setLastError('Cannot move events into the past');
+        setTimeout(() => setLastError(null), 3000);
+        return;
+      }
+
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.id === event.id ? { ...e, start: startDate, end: endDate } : e
+        )
+      );
+    },
+    []
+  );
 
   // Пример: настройка стилей для слотов (ячеек времени)
   const slotPropGetter = (date: Date) => {
@@ -289,11 +371,18 @@ const CalendarPage = () => {
             eventPropGetter={(event: Event) => ({
               style: {
                 backgroundColor: event.color || '#3B86FF',
+                color: computeTextColor(event.color || '#3B86FF'),
               },
             })}
           />
         </div>
       </div>
+
+      {lastError && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-red-100 text-red-800 px-3 py-2 rounded shadow z-50 text-sm">
+          {lastError}
+        </div>
+      )}
 
       {showModal && (
         <EventPopover

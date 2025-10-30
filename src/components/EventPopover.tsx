@@ -126,10 +126,14 @@ const EventPopover = ({
         top: position.y,
         left: position.x,
       }}
+      role="dialog"
+      aria-modal="true"
+      aria-label={isEditing ? 'Edit event' : 'Add event'}
     >
       <button
         onClick={onClose}
         className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+        aria-label="Close popover"
       >
         <X className="w-4 h-4" />
       </button>
@@ -148,6 +152,8 @@ const EventPopover = ({
               placeholder={field.placeholder}
               maxLength={field.label === 'Event name' ? 30 : undefined}
               className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+              aria-label={field.label}
+              autoFocus={field.label === 'Event name'}
             />
           </div>
         ))}
@@ -159,6 +165,7 @@ const EventPopover = ({
             onChange={(e) => onNotesChange(e.target.value)}
             placeholder="Culpa sit ex veniam qui quis..."
             className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+            aria-label="Notes"
           />
         </div>
 
@@ -185,6 +192,7 @@ const EventPopover = ({
                     : 'border-gray-300'
                 }`}
                 style={{ backgroundColor: color }}
+                aria-label={`Choose color ${color}`}
               />
             ))}
           </div>
