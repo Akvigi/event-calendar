@@ -81,6 +81,9 @@ const CalendarPage = () => {
     end: Date;
     box?: { x: number; y: number; clientX: number; clientY: number };
   }) => {
+    if (start < new Date()) {
+      return;
+    }
     setCurrentEvent({ start, end });
     setFormFromDate(start);
     setIsEditing(false);
@@ -171,17 +174,25 @@ const CalendarPage = () => {
   };
 
   const goToBack = () => {
-    if (view === 'work_week' || view === 'agenda') {
-      return;
-    }
-    setDate(moment(date).subtract(1, view).toDate());
+    const v: Record<View, 'month' | 'day' | 'week'> = {
+      month: 'month',
+      week: 'week',
+      work_week: 'week',
+      day: 'day',
+      agenda: 'day',
+    };
+    setDate(moment(date).subtract(1, v[view]).toDate());
   };
 
   const goToNext = () => {
-    if (view === 'work_week' || view === 'agenda') {
-      return;
-    }
-    setDate(moment(date).add(1, view).toDate());
+    const v: Record<View, 'month' | 'day' | 'week'> = {
+      month: 'month',
+      week: 'week',
+      work_week: 'week',
+      day: 'day',
+      agenda: 'day',
+    };
+    setDate(moment(date).add(1, v[view]).toDate());
   };
 
   const handleEventDrop = ({
@@ -208,6 +219,9 @@ const CalendarPage = () => {
     const isWeekend = date.getDay() === 0 || date.getDay() === 6;
     return {
       className: isWeekend ? 'calendar-weekend' : '',
+      style: {
+        cursor: date < new Date() ? 'not-allowed' : undefined,
+      },
     };
   };
 
@@ -248,7 +262,6 @@ const CalendarPage = () => {
         <div className={' flex-1'}>
           <DragAndDropCalendar
             localizer={localizer}
-            className="custom-calendar"
             events={events}
             startAccessor="start"
             endAccessor="end"
@@ -262,7 +275,6 @@ const CalendarPage = () => {
             onEventDrop={handleEventDrop}
             selectable
             toolbar={false}
-            style={{ height: '100%', width: '100%' }}
             slotPropGetter={slotPropGetter}
             dayPropGetter={dayPropGetter}
             components={{
@@ -275,14 +287,8 @@ const CalendarPage = () => {
               },
             }}
             eventPropGetter={(event: Event) => ({
-              className: 'custom-event',
               style: {
                 backgroundColor: event.color || '#3B86FF',
-                borderRadius: '4px',
-                border: 'none',
-                color: 'white',
-                fontSize: '13px',
-                padding: '2px 6px',
               },
             })}
           />

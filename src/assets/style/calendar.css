@@ -5,6 +5,8 @@
     font-family: 'Source Sans Pro', sans-serif;
     color: #43425D;
     min-height: 500px;
+    height: 100%;
+    width: 100%;
 }
 
 .rbc-event.rbc-selected {
@@ -200,4 +202,6 @@
 }
 
 
-
+.rbc-day-slot .rbc-events-container {
+    margin: 0;
+}
